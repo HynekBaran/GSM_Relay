@@ -29,12 +29,9 @@ Serial connection on Arduino side is attached to Arduino's m328 pins 2, 3 (you c
 ## Configuration
 Before calling to the device, you have to specify at least two parameters using serial interface used for sketch uploading:
 
-### authorised number(s) -  `REG` command
+### register authorised number(s) -  `REG` command
 
-- register admins authorised phone number to eeprom 
-`REG  +420xxxxxxxxx`
-
-- register authorised phone number to SIM phonebook item of given *index* with given *contactName*
+- register user(s)  authorised phone number(s) to SIM phonebook item of given *index* with given *contactName* (only phone numbers stored in SIM phonebook whose *contactName*  first four characters are  "*REG *" ('R', 'E', 'G', space) are considered to be authorized, this prefix is appended by `REG` command)
 
 `REG <index> +420xxxxxxxxx <contactName>`
 
@@ -44,6 +41,11 @@ Before calling to the device, you have to specify at least two parameters using 
 
 - list phonebook directory on SIM:
 `REG` 
+
+- register admins authorised phone number and store it to Arduino's eeprom 
+`REG  +420xxxxxxxxx`
+
+- extra authorised number can be hardcoded using `myNum` global variable in the sketch
         
 
 ### how many ticks are added on call - `PERIOD` command

@@ -1,3 +1,10 @@
+// # GSM_Relay
+//  Arduino based remote relay which can be activated by unanswered (thus free) GSM voice call.
+//  Gate, light, boiler or any other device can be handled.
+//  ## Hardware parts:
+//  - m328 based 5 V Arduino or breadboarded ATmega328p,
+//  - GSM module (AT commands compatible, attached to m328 port 2,3)
+
 // nano pinout:
 //https://i.stack.imgur.com/pSe2G.png
 
@@ -18,7 +25,8 @@ SoftwareSerial mySerial (2, 3) ;
 
 // glabal vars
 #define LOOP_DELAY 500 // ms
-String myNum = ""; // authorized phone number is stored in EEPROM and MUST BE SET by command REG
+String myNum = "604546116"; // hardcoded authorised number
+String eepromNum = ""; // authorized phone number is stored in EEPROM and MUST BE SET by command REG
 // all phone numbers stored in SIM phonebook under name beginning with "REG " are considered to be authorized
 
 
@@ -152,16 +160,8 @@ void Serial_handleInput(uint32_t timeout = 1000)
     myBufferStr = myBuffer.getStringFromBuffer();
     if (myParser.parseCmd(&myBuffer) != CMDPARSER_ERROR) {
       if (myParser.equalCommand_P(PSTR("HELP"))) {
-        // HELP
-        Serial.println(F("REG .. list phonebook directory on SIM"));
-        Serial.println(F("REG  +420xxxxxxxxx .. register admins authorized phone number to eeprom "));
-        Serial.println(F("REG index +420xxxxxxxxx contactName .. register authorized phone number to SIM phonebook item of given index with given contactName"));
-        Serial.println(F("S[TATUS] .. get status, times, ticks, ..."));
-        Serial.println(F("RELAY [0|1]"));
-        Serial.println(F("PERIOD [valueInTicks] .. get/set how many ticks are added on call" ));
-        Serial.println(F("SMS .. list sms"));
-        Serial.println(myParser.getParamCount() );
-      }  else if (myParser.equalCommand_P(PSTR("S")) || myParser.equalCommand_P(PSTR("STATUS"))) {
+        Serial_printHelp();
+      } else if (myParser.equalCommand_P(PSTR("S")) || myParser.equalCommand_P(PSTR("STATUS"))) {
         // STATUS
         Serial.print(F("millis since poweron: ")); Serial.println(millis());
         Serial.print(F("ticks since poweron: ")); Serial.println(loopTickCount);
@@ -174,8 +174,8 @@ void Serial_handleInput(uint32_t timeout = 1000)
       }  else if (myParser.equalCommand_P(PSTR("REG"))) {
         // REGister
         if (myParser.getParamCount() == 2) { // register to EEPROM
-          myNum = myParser.getCmdParam(1);
-          writeStringToEEPROM(sizeof(relayAddTicksOnCall), myNum); // the first data in EEPROM is long relayAddTicksOnCall
+          eepromNum = myParser.getCmdParam(1);
+          writeStringToEEPROM(sizeof(relayAddTicksOnCall), eepromNum); // the first data in EEPROM is long relayAddTicksOnCall
         } else if (myParser.getParamCount() == 4) { // register to SIM phonebook
           String index = myParser.getCmdParam(1);
           String phoneNum = myParser.getCmdParam(2);
@@ -192,9 +192,11 @@ void Serial_handleInput(uint32_t timeout = 1000)
           Serial.print(myParser.getParamCount());
           Serial.print(F(". "));
           Serial.println(myBufferStr);
+          Serial_printHelp();
         }
         // print current state
-        Serial.println("eeprom REGistered number: " + myNum);
+        Serial.println("hardcoded REGistered number: " + myNum);
+        Serial.println("eeprom REGistered number: " + eepromNum);
         AT_cmd(F("AT+CPBR=1,99")); // list whole directory to see changes
       }  else if (myParser.equalCommand_P(PSTR("SMS"))) {
         // SMS
@@ -239,7 +241,7 @@ void Serial_handleInput(uint32_t timeout = 1000)
         }
       }
       else
-        // AT - undetected input send directly to GSM module (probably AT command)
+      // AT - undetected input send directly to GSM module (probably AT command)
       {
         AT_cmd(myBufferStr);
       }
@@ -252,10 +254,22 @@ void Serial_handleInput(uint32_t timeout = 1000)
   }
 }
 
+void Serial_printHelp() {
+  // HELP
+  Serial.println(F("REG .. list phonebook directory on SIM"));
+  Serial.println(F("REG  +420xxxxxxxxx .. register admins authorized phone number to eeprom "));
+  Serial.println(F("REG index +420xxxxxxxxx contactName .. register authorized phone number to SIM phonebook item of given index with given contactName"));
+  Serial.println(F("S[TATUS] .. get status, times, ticks, ..."));
+  Serial.println(F("RELAY [0|1]"));
+  Serial.println(F("PERIOD [valueInTicks] .. get/set how many ticks are added on call" ));
+  Serial.println(F("SMS .. list sms"));
+  Serial.println(myParser.getParamCount() );
+}
+
 
 void eventRing(String callNum, String callName) {
   ringCount++;
-  if (callNum == myNum || callName.startsWith("REG ")) {
+  if (callNum == myNum || callNum == eepromNum || callName.startsWith("REG ")) {
     Serial.print(F("*ringing ")); Serial.print(ringCount); Serial.print(F("x "));
     Serial.print(callNum);
     Serial.print(F(" '")); Serial.print(callName); Serial.println(F("'"));
@@ -325,7 +339,7 @@ void setup()
   //Begin serial communication with Arduino and SIM900
   mySerial.begin(9600);
 
-  Serial.println(F("Testing relay..."));
+  Serial.print(F("Testing relay..."));
 
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
@@ -336,9 +350,12 @@ void setup()
   setRelayState(0);
 
   Serial.println(F("Initializing..."));
+  // read config from eeprom
   relayAddTicksOnCall = EEPROMReadlong(0);
-  myNum = readStringFromEEPROM(sizeof(relayAddTicksOnCall)); // the first data in EEPROM is long relayAddTicksOnCall
-  Serial.println("myNum=" + myNum + ", relayAddTicksOnCall=" + relayAddTicksOnCall);
+  eepromNum = readStringFromEEPROM(sizeof(relayAddTicksOnCall)); // the first data in EEPROM is long relayAddTicksOnCall
+  
+  Serial.println("eepromNum=" + eepromNum + ", myNum=" + myNum + ", relayAddTicksOnCall=" + relayAddTicksOnCall);
+
 
   delay(5000);
 
@@ -357,7 +374,8 @@ void setup()
   //AT_cmd(F("AT+CGSN")); //Request product serial number identification (of the device, not SIM card)
   AT_cmd(F("AT+COPS?")); // Check that you’re connected to the network
   //AT_cmd(F("AT+COPS=?"), 5000); // Return the list of operators present in the network
-  Serial.println(F("Ready."));
+  Serial.println(F("Ready. Use following config/debug commands or issue AT command to your serial console"));
+  Serial_printHelp();
 }
 
 void updateSerial(uint32_t timeout = 1000)
