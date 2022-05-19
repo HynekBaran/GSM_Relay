@@ -25,8 +25,10 @@ SoftwareSerial mySerial (2, 3) ;
 
 // glabal vars
 #define LOOP_DELAY 500 // ms
-String myNum = "604546116"; // hardcoded authorised number
-String eepromNum = ""; // authorized phone number is stored in EEPROM and MUST BE SET by command REG
+
+// authorisation global vars
+String myNum = "604546116"; // hardcoded admin's authorised number
+String eepromNum = ""; // configurable admin's authorized phone number stored in EEPROM --- use command REG to set it
 // all phone numbers stored in SIM phonebook under name beginning with "REG " are considered to be authorized
 
 
