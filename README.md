@@ -37,9 +37,9 @@ Before calling to the device, you have to specify at least two parameters using 
 
 `REG <index> +420xxxxxxxxx <contactName>`
 
-`REG 1 +42012345678 ItsMe`
+`REG 1 +42012345678 Joe`
 
-`REG 2 +42000000000 ItsMyWife`
+`REG 2 +42000000000 Jane`
 
 - list phonebook directory on SIM:
 `REG` 
