@@ -20,7 +20,7 @@
 #include <EEPROM.h>
 
 // hardware pins
-SoftwareSerial mySerial (2, 3) ;
+SoftwareSerial gsmSerial (2, 3) ;
 #define PIN_RELAY 11 // use "RELAY TESTPIN" to find out
 
 // glabal vars
@@ -96,7 +96,7 @@ CmdParser     myParser;
 
 void AT_handleResponse(uint32_t timeout = 1000) {
   // Read line and parse from GSM until timeout
-  if (myBuffer.readFromSerial(&mySerial, timeout)) {
+  if (myBuffer.readFromSerial(&gsmSerial, timeout)) {
     myBufferStr = myBuffer.getStringFromBuffer();
     if (myParser.parseCmd(&myBuffer) != CMDPARSER_ERROR) {
       // RINGING, get  CLIP
@@ -124,7 +124,7 @@ void AT_handleResponse(uint32_t timeout = 1000) {
 
 void AT_cmd (String cmd, uint32_t d = 3000, uint32_t timeout = 2000) {
   Serial.println(">" + cmd);
-  mySerial.println(cmd);
+  gsmSerial.println(cmd);
   delay(d);
   AT_handleResponse(timeout);
 }
@@ -136,7 +136,7 @@ void AT_hangup(String msg) {
   Serial.println(msg);
   AT_cmd(F("ATH"), 5000); // wait long,  maybe some late +CLIP will come
   //Serial.println(F(">ATH"));
-  //mySerial.println(F("ATH"));
+  //gsmSerial.println(F("ATH"));
   digitalWrite(LED_BUILTIN, LOW);
   // TODO: test whether line is hung up
 }
@@ -151,7 +151,7 @@ void AT_hangup(String msg) {
     //AT_cmd(myBuffer);
     Serial.print(F(">"));
     Serial.println(myBuffer);
-    mySerial.println(myBuffer);
+    gsmSerial.println(myBuffer);
   }
   }
 */
@@ -339,7 +339,7 @@ void setup()
   Serial.begin(19200);
 
   //Begin serial communication with Arduino and SIM900
-  mySerial.begin(9600);
+  gsmSerial.begin(9600);
 
   Serial.print(F("Testing relay..."));
 

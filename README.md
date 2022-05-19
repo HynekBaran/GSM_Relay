@@ -19,8 +19,8 @@ The parts used and tested are
 
 ## Wiring 
 Arduino compatible device uses two serial interfaces: 
-1. is used for configuration, sketch uploading and debugging (hardware serial available via USB on Arduino Nano), 19200 Bd unless changed
-2. is attached to the GSM module (SoftwareSerial on Arduino Nano is used, 9600 Bd)
+1. is used for configuration, sketch uploading and debugging (hardware serial available via USB on Arduino Nano), 19200 Bd unless changed (`Serial`)
+2. is attached to the GSM module (SoftwareSerial on Arduino Nano is used, 9600 Bd, `SoftwareSerial gsmSerial (2, 3)`)
  
 Serial connection on Arduino side is attached to Arduino's m328 pins 2, 3 (you can change in sketch) and SoftwareSerial library is used. 
 
