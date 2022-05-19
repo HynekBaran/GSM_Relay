@@ -33,7 +33,7 @@ Before calling to the device, you have to specify at least two parameters using 
 
 ### register authorised number(s) -  `REG` command
 
-- register user(s)  authorised phone number(s) to SIM phonebook item of given *index* with given *contactName* (only phone numbers stored in SIM phonebook whose *contactName*  first four characters are  "*REG *" ('R', 'E', 'G', space) are considered to be authorized, this prefix is appended by `REG` command)
+- register user(s)  authorised phone number(s) to SIM phonebook item of given *index* with given *contactName* (only phone numbers stored in SIM phonebook whose *contactName*  first four characters are  "REG " ('R', 'E', 'G', space) are considered to be authorized, this prefix is appended by `REG` command)
 
 `REG <index> +420xxxxxxxxx <contactName>`
 
