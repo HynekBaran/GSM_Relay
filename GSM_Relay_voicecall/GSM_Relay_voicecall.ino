@@ -33,8 +33,8 @@ String eepromNum = ""; // configurable admin's authorized phone number stored in
 
 
 static unsigned long  loopTickCount = 0;
-static  long  relayTickCount = 0; // <= 0  means OFF
-static unsigned long relayAddTicksOnCall = 1 * 60 / 3; // relay on remaining ticks, one tick ~ 3 s
+static uint32_t  relayStopTime = 0; // when relay will be switched off (millis() is the system time), 0 means relay is already OFF
+static uint32_t relayAddTimeOnCall = 60 * 1000; // relay on remaining  (miliseconds)
 
 static int callCount = 0 ; // number of activating calls
 uint8_t ringCount = 0 ;
@@ -87,6 +87,33 @@ String readStringFromEEPROM(int addrOffset)
   data[newStrLen] = '\0';
   return String(data);
 }
+/////////////////////////////////////////////////////////////////
+void msToHMS( const uint32_t ms, uint16_t &h, uint8_t &m, uint8_t &s )
+{
+  uint32_t t = floor(ms / 1000);
+
+  s = t % 60;
+
+  t = (t - s) / 60;
+  m = t % 60;
+
+  t = (t - m) / 60;
+  h = t;
+}
+void printHMS( const uint32_t ms )
+{
+  uint16_t h;
+  uint8_t m;
+  uint8_t s;
+  msToHMS(ms, h, m , s);
+  Serial.print(h);
+  Serial.print(F(":"));
+  Serial.print(m);
+  Serial.print(F(":"));
+  Serial.print(s);
+}
+
+
 
 ///////////////////////////////////////////////////////////////////
 
@@ -165,19 +192,27 @@ void Serial_handleInput(uint32_t timeout = 1000)
         Serial_printHelp();
       } else if (myParser.equalCommand_P(PSTR("S")) || myParser.equalCommand_P(PSTR("STATUS"))) {
         // STATUS
-        Serial.print(F("millis since poweron: ")); Serial.println(millis());
+        Serial.print(F("time since poweron: "));
+        Serial.print(floor(millis() / 1000));
+        Serial.print(F(" [s] = "));
+        printHMS(millis());
+        Serial.println(F(" [h:m:s]"));
         Serial.print(F("ticks since poweron: ")); Serial.println(loopTickCount);
         Serial.print(F("relay state is ")); Serial.println(getRelayState());
-        Serial.print(F("relay on remaining ticks:  ")); Serial.println(relayTickCount);
+        if (relayStopTime != 0)  {
+          Serial.print(F("relay on remaining time:  "));
+          printRelayRemainingTime();
+          Serial.print(F("relay will stop at [s]:  ")); Serial.println(floor(relayStopTime) / 1000);
+        }
         Serial.print(F("relay activating calls: ")); Serial.println(callCount);
         Serial.print(F("ringCount: ")); Serial.println(ringCount);
         Serial.print(F("lastCallTick: ")); Serial.println(lastCallTick);
-        Serial.print(F("relayAddTicksOnCall: ")); Serial.println(relayAddTicksOnCall);
+        Serial.print(F("relayAddTimeOnCall [s]: ")); Serial.println(relayAddTimeOnCall / 1000);
       }  else if (myParser.equalCommand_P(PSTR("REG"))) {
         // REGister
         if (myParser.getParamCount() == 2) { // register to EEPROM
           eepromNum = myParser.getCmdParam(1);
-          writeStringToEEPROM(sizeof(relayAddTicksOnCall), eepromNum); // the first data in EEPROM is long relayAddTicksOnCall
+          writeStringToEEPROM(sizeof(relayAddTimeOnCall), eepromNum); // the first data in EEPROM is long relayAddTimeOnCall
         } else if (myParser.getParamCount() == 4) { // register to SIM phonebook
           String index = myParser.getCmdParam(1);
           String phoneNum = myParser.getCmdParam(2);
@@ -214,9 +249,9 @@ void Serial_handleInput(uint32_t timeout = 1000)
         } else {
           String s1 = myParser.getCmdParam(1);
           if (s1 == "ON" or s1 == "1") {
-            setRelayState(true);
+            setRelayState(1);
           } else if (s1 == "OFF" or s1 == "0") {
-            setRelayState(false);
+            setRelayState(0);
           } else if (s1 == "TESTPIN" ) { // test all output pins
             for (int i = 4; i < 32; i++) {
               Serial.println(i);
@@ -232,18 +267,18 @@ void Serial_handleInput(uint32_t timeout = 1000)
       } else if (myParser.equalCommand_P(PSTR("PERIOD"))) {
         // PERIOD
         if (myParser.getParamCount() == 1) {
-          Serial.print(F("relayAddTicksOnCall is  ")); Serial.println(relayAddTicksOnCall);
+          Serial.print(F("relayAddTimeOnCall [s] is  ")); Serial.println(relayAddTimeOnCall / 1000);
         }  else if (myParser.getParamCount() == 2) {
-          long p = atol(myParser.getCmdParam(1));
-          Serial.print(F("Setting relayAddTicksOnCall to ")); Serial.println(p);
-          relayAddTicksOnCall = p;
+          uint32_t p = atol(myParser.getCmdParam(1)) * 1000;
+          Serial.print(F("Setting relayAddTicksOnCall [ms] to ")); Serial.println(p);
+          relayAddTimeOnCall = p;
           EEPROMWritelong(0, p);
         } else {
           Serial.println("PERIOD syntax error, wrong number of parameters " + myParser.getParamCount());
         }
       }
       else
-      // AT - undetected input send directly to GSM module (probably AT command)
+        // AT - undetected input send directly to GSM module (probably AT command)
       {
         AT_cmd(myBufferStr);
       }
@@ -263,7 +298,7 @@ void Serial_printHelp() {
   Serial.println(F("REG index +420xxxxxxxxx contactName .. register authorized phone number to SIM phonebook item of given index with given contactName"));
   Serial.println(F("S[TATUS] .. get status, times, ticks, ..."));
   Serial.println(F("RELAY [0|1]"));
-  Serial.println(F("PERIOD [valueInTicks] .. get/set how many ticks are added on call" ));
+  Serial.println(F("PERIOD [valueInTicks] .. get/set how many ticks are added on call, in seconds" ));
   Serial.println(F("SMS .. list sms"));
   Serial.println(myParser.getParamCount() );
 }
@@ -292,30 +327,37 @@ void eventRing(String callNum, String callName) {
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-static bool relayState;
-
-void setRelayState (bool r) {
-  if (r == true) {
-    relayState = 1;
-    Serial.println(F("Relay ON"));
+void setRelayState (uint8_t i) {
+  if (i > 0) {
+    if (relayStopTime == 0) {
+      relayStopTime = millis() + i * relayAddTimeOnCall;
+    } else {
+      relayStopTime += i * relayAddTimeOnCall;
+    }
+    Serial.print(F("Relay ON and stops in "));
+    printRelayRemainingTime();
     digitalWrite(PIN_RELAY, HIGH);
-  } else if (r == false) {
-    relayState = 0 ;
+  } else {
+    relayStopTime = 0;
     Serial.println(F("Relay OFF"));
     digitalWrite(PIN_RELAY, LOW);
-  } else {
-    Serial.println(F("ERROR, setRelayState must have bool arg!"));
   }
 }
 
+void printRelayRemainingTime() {
+  Serial.print(floor((relayStopTime - millis()) / 1000));
+  Serial.print(F(" [s] = "));
+  printHMS(relayStopTime - millis());
+  Serial.println(F(" [h:m:s]"));
+}
+
 bool getRelayState () {
-  return relayState;
+  return relayStopTime > 0;
 }
 
 
 void resetRelay() {
   callCount = 0;
-  relayTickCount = 0;
   setRelayState(0) ;
   Serial.println(F("*** Relay off and reset."));
 }
@@ -327,7 +369,6 @@ void EventShortRing (uint8_t rings) {
 
 void EventLongRing () {
   callCount++;
-  relayTickCount += relayAddTicksOnCall;
   setRelayState(1);
 }
 
@@ -353,10 +394,10 @@ void setup()
 
   Serial.println(F("Initializing..."));
   // read config from eeprom
-  relayAddTicksOnCall = EEPROMReadlong(0);
-  eepromNum = readStringFromEEPROM(sizeof(relayAddTicksOnCall)); // the first data in EEPROM is long relayAddTicksOnCall
-  
-  Serial.println("eepromNum=" + eepromNum + ", myNum=" + myNum + ", relayAddTicksOnCall=" + relayAddTicksOnCall);
+  relayAddTimeOnCall = EEPROMReadlong(0);
+  eepromNum = readStringFromEEPROM(sizeof(relayAddTimeOnCall)); // the first data in EEPROM is long relayAddTicksOnCall
+
+  Serial.println("eepromNum=" + eepromNum + ", myNum=" + myNum + ", relayAddTimeOnCall[s]=" + relayAddTimeOnCall / 1000);
 
 
   delay(5000);
@@ -393,13 +434,10 @@ void updateSerial(uint32_t timeout = 1000)
 void loop()
 {
   if (loopTickCount++ % 10 == 0) {
-    Serial.print(".");
+    Serial.print(getRelayState() == 0 ? F(".") : F(","));
   };
 
-  if (relayTickCount > 1) {
-    relayTickCount--;
-  }
-  else if (relayTickCount == 1) {
+  if (relayStopTime != 0 && millis() > relayStopTime)  {
     resetRelay();
   }
 

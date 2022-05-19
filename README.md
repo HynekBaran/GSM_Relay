@@ -50,11 +50,9 @@ Before calling to the device, you have to specify at least two parameters using 
 - extra authorised number can be hardcoded using `myNum` global variable in the sketch
         
 
-### how many ticks are added on call - `PERIOD` command
+### how many seconds are added on single voice call - `PERIOD` command
 
-`PERID <numberOfTicks>`
-
-Ticks are about 0.5 seconds unless changed in the sketch (LOOP_DELAY).
+`PERID <numberOfSeconds>`
 
 
  ## Usage
@@ -64,11 +62,11 @@ Ticks are about 0.5 seconds unless changed in the sketch (LOOP_DELAY).
 
 
 - To switch the remote relay ON for a time specified by `PERIOD`, make a voice call from authorised phone number to the GSM_Relay device and *do not hang*. 
-After 4 rings, *the remote side will hang* (so you know your call was accepted) and relay switched on for a period (invoke `STATUS` command and see `relayTickCount` for remaining ticks).
+After 4 rings, *the remote side will hang* (so you know your call was accepted) and relay switched on for a period (invoke `STATUS` command  to see remaining time).
 
-- When you repeat your call while relay is ON, additional PERIOD is add to the remaining time (`relayTickCount`).
+- When you repeat your call while relay is ON, the remaining time is incremented.
 
-- To switch the relay OFF immediately, call GSM_Relay, wait for the first ring and hang up.
+- To switch the relay OFF immediately, voice call GSM_Relay, wait for the first ring and hang up.
 
 
 
