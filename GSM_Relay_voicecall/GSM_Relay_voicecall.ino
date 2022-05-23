@@ -27,8 +27,8 @@ SoftwareSerial gsmSerial (2, 3) ;
 #define LOOP_DELAY 500 // ms
 
 // authorisation global vars
-String myNum = "604546116"; // hardcoded admin's authorised number
-String eepromNum = ""; // configurable admin's authorized phone number stored in EEPROM --- use command REG to set it
+static const String myNum = "604546116"; // hardcoded admin's authorised number
+static String eepromNum = ""; // configurable admin's authorized phone number stored in EEPROM --- use command REG to set it
 // all phone numbers stored in SIM phonebook under name beginning with "REG " are considered to be authorized
 
 
@@ -298,7 +298,7 @@ void Serial_printHelp() {
   Serial.println(F("REG index +420xxxxxxxxx contactName .. register authorized phone number to SIM phonebook item of given index with given contactName"));
   Serial.println(F("S[TATUS] .. get status, times, ticks, ..."));
   Serial.println(F("RELAY [0|1]"));
-  Serial.println(F("PERIOD [valueInTicks] .. get/set how many ticks are added on call, in seconds" ));
+  Serial.println(F("PERIOD [s] .. get/set how many time are added on single call, in seconds" ));
   Serial.println(F("SMS .. list sms"));
   Serial.println(myParser.getParamCount() );
 }
