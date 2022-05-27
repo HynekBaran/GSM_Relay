@@ -63,7 +63,7 @@ Before calling to the device, you have to specify at least two parameters using 
 - To switch the remote relay ON for a time specified by `PERIOD`, make a voice call from authorised phone number to the GSM_Relay device and *do not hang*. 
 After 4 rings, *the remote side will hang* (so you know your call was accepted) and relay switched on for a period (invoke `STATUS` command  to see remaining time).
 
-- When you repeat your call while relay is ON, the remaining time is incremented.
+- When you repeat your call while relay is ON, the remaining time is incremented (until number of call reach maxVoiceCalls limit).
 
 - To switch the relay OFF immediately, voice call GSM_Relay, wait for the first ring and hang up.
 
