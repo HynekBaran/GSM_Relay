@@ -21,20 +21,23 @@
 
 // hardware pins
 SoftwareSerial gsmSerial (2, 3) ;
-#define PIN_RELAY 11 // use "RELAY TESTPIN" to find out
+#define PIN_RELAY 11 // use "RELAY TESTPIN" to find out correct pin number
+#define LED LED_BUILTIN
 
 // glabal vars
 #define LOOP_DELAY 500 // ms
 
 // authorisation global vars
-static const String myNum = "604546116"; // hardcoded admin's authorised number
-static String eepromNum = ""; // configurable admin's authorized phone number stored in EEPROM --- use command REG to set it
+// SIM phone directory is main storage of authorised numbers
 // all phone numbers stored in SIM phonebook under name beginning with "REG " are considered to be authorized
+// use "REG index number contactName" command to add/change authorized numbers in SIM
+static const String myNum = "604546116"; // hardcoded admin's authorised number
+static String eepromNum; // configurable admin's authorized phone number stored in EEPROM --- use command REG to set it
 
 
 static unsigned long  loopTickCount = 0;
 static uint32_t  relayStopTime = 0; // when relay will be switched off (millis() is the system time), 0 means relay is already OFF
-static uint32_t relayAddTimeOnCall = 60 * 1000; // relay on remaining  (miliseconds)
+static uint32_t relayAddTimeOnCall; // relay on interval (miliseconds), stored in EEPROM -- use command PERIOD to set it
 
 static int callCount = 0 ; // number of activating calls
 uint8_t ringCount = 0 ;
@@ -91,12 +94,9 @@ String readStringFromEEPROM(int addrOffset)
 void msToHMS( const uint32_t ms, uint16_t &h, uint8_t &m, uint8_t &s )
 {
   uint32_t t = floor(ms / 1000);
-
   s = t % 60;
-
   t = (t - s) / 60;
   m = t % 60;
-
   t = (t - m) / 60;
   h = t;
 }
@@ -128,7 +128,7 @@ void AT_handleResponse(uint32_t timeout = 1000) {
     if (myParser.parseCmd(&myBuffer) != CMDPARSER_ERROR) {
       // RINGING, get  CLIP
       if (myParser.equalCommand_P(PSTR("+CLIP:"))) {
-        digitalWrite(LED_BUILTIN, HIGH);
+        digitalWrite(LED, HIGH);
         Serial.print("*"); Serial.println(myBufferStr);
         //          for (int i = 0; i < myParser.getParamCount(); i++)  {
         //            Serial.print(" '"); Serial.print(myParser.getCmdParam(i)); Serial.println("'");
@@ -149,9 +149,10 @@ void AT_handleResponse(uint32_t timeout = 1000) {
 }
 
 
-void AT_cmd (String cmd, uint32_t d = 3000, uint32_t timeout = 2000) {
+void AT_cmd (String cmd, uint32_t d = 4000, uint32_t timeout = 5000) {
   Serial.println(">" + cmd);
-  gsmSerial.println(cmd);
+  gsmSerial.print(cmd);
+  gsmSerial.println(F("\r"));
   delay(d);
   AT_handleResponse(timeout);
 }
@@ -161,11 +162,9 @@ void AT_hangup(String msg) {
   lastCallTick = loopTickCount;
   Serial.print(F("*** HANG UP *** "));
   Serial.println(msg);
-  AT_cmd(F("ATH"), 5000); // wait long,  maybe some late +CLIP will come
-  //Serial.println(F(">ATH"));
-  //gsmSerial.println(F("ATH"));
-  digitalWrite(LED_BUILTIN, LOW);
-  // TODO: test whether line is hung up
+  digitalWrite(LED, LOW);
+  AT_cmd(F("ATH"), 5000); // wait long,  maybe some late +CLIP will come and hang up before relay will turn on (maybe not enough power)
+  // TODO: test whether line is hung up (wait for "OK" ???)
 }
 
 
@@ -323,8 +322,6 @@ void eventRing(String callNum, String callName) {
   }
 }
 
-
-
 /////////////////////////////////////////////////////////////////////////////////////
 
 void setRelayState (uint8_t i) {
@@ -345,9 +342,10 @@ void setRelayState (uint8_t i) {
 }
 
 void printRelayRemainingTime() {
-  Serial.print(floor((relayStopTime - millis()) / 1000));
+  uint32_t t = relayStopTime - millis();
+  Serial.print(floor(t / 1000));
   Serial.print(F(" [s] = "));
-  printHMS(relayStopTime - millis());
+  printHMS(t);
   Serial.println(F(" [h:m:s]"));
 }
 
@@ -372,37 +370,37 @@ void EventLongRing () {
   setRelayState(1);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////
 
-
-void setup()
-{
-  //Begin serial communication with Arduino and Arduino IDE (Serial Monitor)
+void setup() {
+  // Begin serial communication with Arduino and terminal (Serial Monitor in Arduino IDE on developer's computer)
   Serial.begin(19200);
+  Serial.println(F(__FILE__));
+  Serial.print(F("as at "));
+  Serial.print(F(__DATE__));
+  Serial.print(F(", "));
+  Serial.println(F(__TIME__));
+  Serial.println(F("V 1.0.0. Initializing..."));
 
-  //Begin serial communication with Arduino and SIM900
-  gsmSerial.begin(9600);
+  // buildin LED
+  pinMode(LED, OUTPUT);
+  digitalWrite(LED, LOW);
 
-  Serial.print(F("Testing relay..."));
+  // read config from eeprom
+  relayAddTimeOnCall = EEPROMReadlong(0);
+  eepromNum = readStringFromEEPROM(sizeof(relayAddTimeOnCall)); // the first data in EEPROM is long relayAddTicksOnCall
+  Serial.println("eepromNum=" + eepromNum + ", myNum=" + myNum + ", relayAddTimeOnCall[s]=" + relayAddTimeOnCall / 1000);
 
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
-
+  // relay
   pinMode(PIN_RELAY, OUTPUT);
+  Serial.print(F("Testing relay..."));
   setRelayState(1);
   delay(200);
   setRelayState(0);
 
-  Serial.println(F("Initializing..."));
-  // read config from eeprom
-  relayAddTimeOnCall = EEPROMReadlong(0);
-  eepromNum = readStringFromEEPROM(sizeof(relayAddTimeOnCall)); // the first data in EEPROM is long relayAddTicksOnCall
-
-  Serial.println("eepromNum=" + eepromNum + ", myNum=" + myNum + ", relayAddTimeOnCall[s]=" + relayAddTimeOnCall / 1000);
-
-
+  // GSM module
+  gsmSerial.begin(9600);
   delay(5000);
-
-
   AT_cmd(F("AT")); //Handshaking with SIM900
   AT_cmd(F("AT+IPR=9600")); // set baudrate
   AT_cmd(F("ATI")); //Handshaking with SIM900
@@ -417,24 +415,34 @@ void setup()
   //AT_cmd(F("AT+CGSN")); //Request product serial number identification (of the device, not SIM card)
   AT_cmd(F("AT+COPS?")); // Check that you’re connected to the network
   //AT_cmd(F("AT+COPS=?"), 5000); // Return the list of operators present in the network
-  Serial.println(F("Ready. Use following config/debug commands or issue AT command to your serial console"));
+
+  // print some help
   Serial_printHelp();
+  Serial.println(F("Ready. Use above commands or issue AT command to terminal"));
 }
 
-void updateSerial(uint32_t timeout = 1000)
-{
-  //Forward what Serial received to GSM Software Serial Port
-  while (Serial.available())
+void updateSerial(uint32_t timeout = 1000) {
+  // Forward what Serial received from your terminal,
+  // parse commands and imnterpret them
+  // and consider unparsed text as AT GSM commands (redirect them to gsmSerial).
+  if (Serial.available()) {
     Serial_handleInput(timeout);
-  delay(LOOP_DELAY);
-  // Handle output from GSM module (and print it to Serial)
+  } else {
+    delay(LOOP_DELAY);
+  }
+  // Handle output from GSM module (print it to terminal and look for rings)
   AT_handleResponse(timeout);
 }
 
-void loop()
-{
+void loop() {
   if (loopTickCount++ % 10 == 0) {
+    // print we are alive to terminal
     Serial.print(getRelayState() == 0 ? F(".") : F(","));
+  };
+  if (ringCount == 0 && loopTickCount % 100 == 0) {
+    // time to time let know to GSM module we are here (but not when ringing)
+    // in the case of unexpected restart of GSM module (e. g. power issue), it will reestablish serial connection
+    AT_cmd(F("AT"));
   };
 
   if (relayStopTime != 0 && millis() > relayStopTime)  {

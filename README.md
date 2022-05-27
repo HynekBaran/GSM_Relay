@@ -6,7 +6,7 @@ Gate, light, boiler or any other device can be handled.
 
 - Arduino compatible board (e. g.  Arduino Nano, any m328 based 5 V Arduino or breadboarded ATmega328p or any similar device), 
 - GSM module (AT commands compatible),
-- at least 100 uF capacitor connected to  GSM module (GND, VCC) to prevent resetting the system on transmission peaks.
+- at least 1000 μF capacitor connected to (GND, VCC) to prevent resetting the system on GSM transmission peaks (without the capacitor is GSM module unstable).
 
 Take care about voltage (all devices has to use the same (probably 5V), otherwise level convertor must be used). 
 
@@ -24,8 +24,7 @@ Arduino compatible device uses two serial interfaces:
  
 Serial connection on Arduino side is attached to Arduino's m328 pins 2, 3 (you can change in sketch) and SoftwareSerial library is used. 
 
-Relay is connected to Ardiuno pin specified in sketch `#define PIN_RELAY 11` (and to 5V and GND).
-
+Relay is connected to Arduino pin specified in sketch `#define PIN_RELAY 11` (and to 5V and GND).
 
 
 ## Configuration
