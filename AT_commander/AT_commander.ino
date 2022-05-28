@@ -1,12 +1,14 @@
+
+// In 
+// ~/Library/Arduino15/packages/arduino/hardware/avr/1.8.5/libraries/SoftwareSerial/src/SoftwareSerial.h
+// change RX buffer size to 255 bytes
+// #define _SS_MAX_RX_BUFF 255
 #include <SoftwareSerial.h>
 
 //Create software serial object to communicate with SIM900
 SoftwareSerial mySerial(2,3); // mySerial(7, 8); //SIM900 Tx & Rx is connected to Arduino #7 & #8
 
-// In 
-// ~/Library/Arduino15/packages/arduino/hardware/avr/1.8.5/libraries/SoftwareSerial/src/SoftwareSerial.h
-// change RX buffer size to 256 bytes
-// #define _SS_MAX_RX_BUFF 256
+
 void setup()
 {
   //Begin serial communication with Arduino and Arduino IDE (Serial Monitor)

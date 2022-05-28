@@ -24,9 +24,15 @@ Arduino compatible device uses two serial interfaces:
 
 Relay is connected to Arduino pin specified in sketch `#define PIN_RELAY 11` (and to 5V and GND).
 
+## Compilation
+In the `SoftwareSerial` library header file, (in my case, the file
+ "~/Library/Arduino15/packages/arduino/hardware/avr/1.8.5/libraries/SoftwareSerial/src/SoftwareSerial.h"),
+ enlarge RX buffer size by
+`#define _SS_MAX_RX_BUFF 255 // SoftwareSerial RX buffer size`
+
 
 ## Configuration
-Before calling to the device, you have to specify at least two parameters using serial interface used for sketch uploading:
+At least two settings using terminal (via serial interface used for sketch uploading) must be done:
 
 ### register authorised number(s) -  `REG` command
 

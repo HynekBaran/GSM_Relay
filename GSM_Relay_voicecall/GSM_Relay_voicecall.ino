@@ -15,8 +15,14 @@
 // https://www.openluat.com/Product/file/asr1802/AT%20COMMAND%20Set%20for%20Luat%204G%20Modules_V3.89.pdf
 
 
+// In
+// ~/Library/Arduino15/packages/arduino/hardware/avr/1.8.5/libraries/SoftwareSerial/src/SoftwareSerial.h
+// enlarge RX buffer size by
+// #define _SS_MAX_RX_BUFF 255 // SoftwareSerial RX buffer size
 #include <SoftwareSerial.h>
+
 #include <CmdParser.hpp> // https://github.com/pvizeli/CmdParser
+
 #include <EEPROM.h>
 
 // hardware pins
@@ -122,9 +128,10 @@ String myBufferStr = "" ;
 CmdBuffer<255> myBuffer;
 CmdParser     myParser;
 
-void AT_handleResponse(uint32_t timeout = 1000) {
+void AT_handleResponse(uint32_t timeout = 5000) {
   // Read line and parse from GSM until timeout
-  if (myBuffer.readFromSerial(&gsmSerial, timeout)) {
+  myBuffer.clear();
+  while (myBuffer.readFromSerial(&gsmSerial, timeout)) {
     myBufferStr = myBuffer.getStringFromBuffer();
     if (myParser.parseCmd(&myBuffer) != CMDPARSER_ERROR) {
       // RINGING, get  CLIP
@@ -144,6 +151,12 @@ void AT_handleResponse(uint32_t timeout = 1000) {
       } else {
         // unparsed result from GSM module - just print it
         Serial.print(F(":")); Serial.println(myBufferStr);
+      }
+    } else {
+      // parsing of GSM response failed, print it (ignoring empty lines)
+      if (myBufferStr.length() > 0) {
+        Serial.print(F("?"));
+        Serial.println(myBufferStr);
       }
     }
   }
@@ -185,6 +198,7 @@ void AT_hangup(String msg) {
 
 void Serial_handleInput(uint32_t timeout = 1000)
 {
+  myBuffer.clear();
   if (myBuffer.readFromSerial(&Serial, timeout)) {
     myBufferStr = myBuffer.getStringFromBuffer();
     if (myParser.parseCmd(&myBuffer) != CMDPARSER_ERROR) {
@@ -289,9 +303,9 @@ void Serial_handleInput(uint32_t timeout = 1000)
       }
     }
     else { // CMDPARSER_ERROR
-      Serial.print(F("Serial In Parse error. >"));
+      Serial.print(F("Serial input Parse error in >>"));
       Serial.println(myBufferStr);
-      AT_cmd(myBufferStr);
+      // AT_cmd(myBufferStr);
     }
   }
 }
@@ -406,7 +420,7 @@ void setup() {
   Serial.print(F(__DATE__));
   Serial.print(F(", "));
   Serial.println(F(__TIME__));
-  Serial.println(F("V 1.0.1. Initializing..."));
+  Serial.println(F("V 1.1.0. Initializing..."));
 
   // buildin LED
   pinMode(LED, OUTPUT);
