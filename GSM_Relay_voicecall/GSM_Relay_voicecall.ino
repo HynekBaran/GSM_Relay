@@ -134,22 +134,51 @@ void AT_handleResponse(uint32_t timeout = 5000) {
   while (myBuffer.readFromSerial(&gsmSerial, timeout)) {
     myBufferStr = myBuffer.getStringFromBuffer();
     if (myParser.parseCmd(&myBuffer) != CMDPARSER_ERROR) {
-      // RINGING, get  CLIP
+      /// CLIP = RING
       if (myParser.equalCommand_P(PSTR("+CLIP:"))) {
+        // RINGING, parse caller number and name from CLIP
+        String callNum = myParser.getCmdParam(1);
+        String callName = myParser.getCmdParam(4);
+        ringCount++;
+
         digitalWrite(LED, HIGH);
         Serial.print("*"); Serial.println(myBufferStr);
         //          for (int i = 0; i < myParser.getParamCount(); i++)  {
         //            Serial.print(" '"); Serial.print(myParser.getCmdParam(i)); Serial.println("'");
         //          }
-        eventRing(myParser.getCmdParam(1), myParser.getCmdParam(4)); // number, name (from phonebook)
+
+        if (callNum == myNum || callNum == eepromNum || callName.startsWith("REG ")) {
+          // caller is authorised
+          Serial.print(F("*ringing ")); Serial.print(ringCount); Serial.print(F("x "));
+          Serial.print(callNum);
+          Serial.print(F(" '")); Serial.print(callName); Serial.println(F("'"));
+          if (lastCallTick + 10 > loopTickCount) {
+            // EARLY ring
+            Serial.println(F("ignoring early ring") );
+            AT_hangup(F("ignoring early ring"));
+          } else if ( ((ringCount > 3) && (callCount + 1 <= maxVoiceCalls)) || (ringCount > 8)) {
+            // LONG ring
+            callCount++;
+            if (callCount <= maxVoiceCalls) {
+              AT_hangup(F("handling long ring"));
+              addRelayTime(1);
+            } else {
+              AT_hangup(F("maxVoiceCalls reached, ignoring long ring"));
+            }
+          }
+        } else {
+          // unathorized caller
+          AT_hangup("ignoring unathorized caller " + callNum + " " + callName);
+        }
       } else if (myBufferStr.indexOf("NO CARRIER") != -1) {
-        // calling side hanged up
+        /// remote party hang up
         Serial.print(F("*")); Serial.println(myBufferStr);
         AT_hangup(F("no carrier"));
-        EventShortRing(ringCount);
+        Serial.println(F("*** Short ring, resetting relay."));
+        resetRelay();
         ringCount = 0;
       } else {
-        // unparsed result from GSM module - just print it
+        /// unparsed result from GSM module - just print it
         Serial.print(F(":")); Serial.println(myBufferStr);
       }
     } else {
@@ -322,25 +351,6 @@ void Serial_printHelp() {
   Serial.println(myParser.getParamCount() );
 }
 
-
-void eventRing(String callNum, String callName) {
-  ringCount++;
-  if (callNum == myNum || callNum == eepromNum || callName.startsWith("REG ")) {
-    Serial.print(F("*ringing ")); Serial.print(ringCount); Serial.print(F("x "));
-    Serial.print(callNum);
-    Serial.print(F(" '")); Serial.print(callName); Serial.println(F("'"));
-    if (lastCallTick + 10 > loopTickCount) {
-      Serial.println(F("ignoring early ring") );
-      AT_hangup(F("ignoring early ring"));
-    } else if (ringCount > 3) {
-      EventLongRing();
-    }
-  }
-  else {
-    AT_hangup("ignoring unathorized caller " + callNum + " " + callName);
-  }
-}
-
 /////////////////////////////////////////////////////////////////////////////////////
 
 void setRelayState(bool s) {
@@ -391,24 +401,6 @@ void resetRelay() {
   Serial.println(F("*** Relay off and reset."));
 }
 
-void EventShortRing (uint8_t rings) {
-  Serial.println(F("*** Short ring, resetting relay."));
-  resetRelay();
-}
-
-void EventLongRing () {
-  callCount++;
-  if (callCount <= maxVoiceCalls) {
-    AT_hangup(F("handling long ring"));
-    addRelayTime(1);
-  }
-  else {
-    Serial.print(F("ignoring long ring, maxVoiceCalls="));
-    Serial.print(maxVoiceCalls);
-    Serial.print(F(" reached. Relay remains ON and stops in "));
-    printRelayRemainingTime();
-  }
-}
 
 /////////////////////////////////////////////////////////////////////////////////////
 
