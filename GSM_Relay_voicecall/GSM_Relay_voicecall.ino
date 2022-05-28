@@ -286,6 +286,9 @@ void Serial_handleInput(uint32_t timeout = 1000)
         AT_cmd(F("AT+CMGL=\"ALL\""));
         AT_cmd(F("AT+CPMS=\"ME\""));
         AT_cmd(F("AT+CMGL=\"ALL\""));
+        AT_cmd(F("AT+CPMS=\"SM\""));
+        Serial.println(F("*** hint: try AT+CMGR=index"));
+        // TODO: AT+CMGR=index can read single message, see https://www.developershome.com/sms/cmgrCommand.asp
       } else if (myParser.equalCommand_P(PSTR("RELAY"))) {
         // RELAY
         if (myParser.getParamCount() == 1) {
@@ -447,6 +450,7 @@ void setup() {
   //AT_cmd(F("AT+CGSN")); //Request product serial number identification (of the device, not SIM card)
   AT_cmd(F("AT+COPS?")); // Check that you’re connected to the network
   //AT_cmd(F("AT+COPS=?"), 5000); // Return the list of operators present in the network
+  AT_cmd(F("AT+CPMS=\"SM\"")); // default SMS storage
 
   // print some help
   Serial_printHelp();
