@@ -24,6 +24,9 @@ Arduino compatible device uses two serial interfaces:
 
 Relay is connected to Arduino pin specified in sketch `#define PIN_RELAY 11` (and to 5V and GND).
 
+
+![Schematics](schematics.jpg)
+
 ## Compilation
 In the `SoftwareSerial` library header file, (in my case, the file
  "~/Library/Arduino15/packages/arduino/hardware/avr/1.8.5/libraries/SoftwareSerial/src/SoftwareSerial.h"),
