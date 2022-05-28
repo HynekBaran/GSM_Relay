@@ -21,8 +21,6 @@ The parts used and tested are
 Arduino compatible device uses two serial interfaces: 
 1. is used for configuration, sketch uploading and debugging (hardware serial available via USB on Arduino Nano), 19200 Bd unless changed (`Serial`)
 2. is attached to the GSM module (SoftwareSerial on Arduino Nano is used, 9600 Bd, `SoftwareSerial gsmSerial (2, 3)`)
- 
-Serial connection on Arduino side is attached to Arduino's m328 pins 2, 3 (you can change in sketch) and SoftwareSerial library is used. 
 
 Relay is connected to Arduino pin specified in sketch `#define PIN_RELAY 11` (and to 5V and GND).
 
@@ -51,7 +49,7 @@ Before calling to the device, you have to specify at least two parameters using 
 
 ### how many seconds are added on single voice call - `PERIOD` command
 
-`PERID <numberOfSeconds>`
+`PERIOD <numberOfSeconds>`
 
 
  ## Usage
