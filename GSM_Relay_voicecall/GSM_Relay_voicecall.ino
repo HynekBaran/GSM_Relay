@@ -102,7 +102,38 @@ String readStringFromEEPROM(int addrOffset)
   return String(data);
 }
 
+/////////////////////////////////////////////////////////////////
+// Arduino Internal temperature sensor
+double GetTemp(void)
+{
+  unsigned int wADC;
+  double t;
 
+  // The internal temperature has to be used
+  // with the internal reference of 1.1V.
+  // Channel 8 can not be selected with
+  // the analogRead function yet.
+
+  // Set the internal reference and mux.
+  ADMUX = (_BV(REFS1) | _BV(REFS0) | _BV(MUX3));
+  ADCSRA |= _BV(ADEN);  // enable the ADC
+
+  delay(20);            // wait for voltages to become stable.
+
+  ADCSRA |= _BV(ADSC);  // Start the ADC
+
+  // Detect end-of-conversion
+  while (bit_is_set(ADCSRA,ADSC));
+
+  // Reading register "ADCW" takes care of how to read ADCL and ADCH.
+  wADC = ADCW;
+
+  // The offset of 324.31 could be wrong. It is just an indication. To be calibrated.
+  t = (wADC - 324.31 ) / 1.22;
+
+  // The returned temperature is in degrees Celcius.
+  return (t);
+}
 /////////////////////////////////////////////////////////////////
 
 void msToHMS( const uint32_t ms, uint16_t &h, uint8_t &m, uint8_t &s )
@@ -259,6 +290,7 @@ void Serial_handleInput(uint32_t timeout = 1000)
         Serial.print(F("relayAddTimeOnCall [s]: ")); Serial.println(relayAddTimeOnCall / 1000);
         Serial.print(F("relay activating calls (callCount): ")); Serial.println(callCount);
         Serial.print(F("maxVoiceCalls: ")); Serial.println(maxVoiceCalls);
+        Serial.print(F("Temp [C]: ")); Serial.println(GetTemp(),1);
       }  else if (myParser.equalCommand_P(PSTR("REG"))) {
         // REGister
         if (myParser.getParamCount() == 2) { // register to EEPROM
@@ -483,6 +515,7 @@ void loop() {
     Serial.print(getRelayState() == 0 ? F(".") : F(","));
   };
   if (ringCount == 0 && loopTickCount % 100 == 0) {
+      Serial.println(GetTemp(),1);
     // time to time let know to GSM module we are here (but not when ringing)
     // in the case of unexpected restart of GSM module (e. g. power issue), it will reestablish serial connection
     AT_cmd(F("AT"));
