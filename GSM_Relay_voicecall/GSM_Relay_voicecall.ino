@@ -20,6 +20,10 @@
 // enlarge RX buffer size by
 // #define _SS_MAX_RX_BUFF 255 // SoftwareSerial RX buffer size
 #include <SoftwareSerial.h>
+#if _SS_MAX_RX_BUFF < 100
+#error "_SS_MAX_RX_BUFF in <SoftwareSerial.h> is probably set too low."
+#endif
+
 
 #include <CmdParser.hpp> // https://github.com/pvizeli/CmdParser
 
@@ -97,7 +101,10 @@ String readStringFromEEPROM(int addrOffset)
   data[newStrLen] = '\0';
   return String(data);
 }
+
+
 /////////////////////////////////////////////////////////////////
+
 void msToHMS( const uint32_t ms, uint16_t &h, uint8_t &m, uint8_t &s )
 {
   uint32_t t = floor(ms / 1000);
