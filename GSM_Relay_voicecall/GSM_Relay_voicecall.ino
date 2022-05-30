@@ -515,7 +515,7 @@ void loop() {
     Serial.print(getRelayState() == 0 ? F(".") : F(","));
   };
   if (ringCount == 0 && loopTickCount % 100 == 0) {
-      Serial.println(GetTemp(),1);
+    //  Serial.println(GetTemp(),1); // something is wrong with temperature measurement
     // time to time let know to GSM module we are here (but not when ringing)
     // in the case of unexpected restart of GSM module (e. g. power issue), it will reestablish serial connection
     AT_cmd(F("AT"));
