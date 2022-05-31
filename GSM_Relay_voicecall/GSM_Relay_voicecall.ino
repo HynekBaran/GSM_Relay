@@ -198,11 +198,7 @@ void AT_handleResponse(uint32_t timeout = 5000) {
           Serial.print(F("*ringing ")); Serial.print(ringCount); Serial.print(F("x "));
           Serial.print(callNum);
           Serial.print(F(" '")); Serial.print(callName); Serial.println(F("'"));
-          if (lastCallTick + 10 > loopTickCount) {
-            // EARLY ring
-            Serial.println(F("ignoring early ring") );
-            AT_hangup(F("ignoring early ring"));
-          } else if ( ((ringCount > 3) && (callCount + 1 <= maxVoiceCalls)) || (ringCount > 8)) {
+          if ( ((ringCount > 3) && (callCount + 1 <= maxVoiceCalls)) || (ringCount > 8)) {
             // LONG ring
             callCount++;
             if (callCount <= maxVoiceCalls) {
@@ -238,12 +234,12 @@ void AT_handleResponse(uint32_t timeout = 5000) {
 }
 
 
-void AT_cmd (String cmd, uint32_t d = 10, uint32_t timeout = 5000) {
+void AT_cmd (String cmd, uint32_t d = 10) {
   Serial.println(">" + cmd);
   gsmSerial.print(cmd);
   gsmSerial.println(F("\r"));
   delay(d);
-  AT_handleResponse(timeout);
+  AT_handleResponse();
 }
 
 void AT_hangup(String msg) {
@@ -271,7 +267,7 @@ void AT_hangup(String msg) {
   }
 */
 
-void Serial_handleInput(uint32_t timeout = 1000)
+void Serial_handleInput(uint32_t timeout = 100)
 {
   myBuffer.clear();
   if (myBuffer.readFromSerial(&Serial, timeout)) {
@@ -334,7 +330,7 @@ void Serial_handleInput(uint32_t timeout = 1000)
         AT_cmd(F("AT+CPMS=\"ME\""));
         AT_cmd(F("AT+CMGL=\"ALL\""));
         AT_cmd(F("AT+CPMS=\"SM\""));
-        Serial.println(F("*** hint: try AT+CMGR=index"));
+        // Serial.println(F("*** hint: try AT+CMGR=index"));
         // TODO: AT+CMGR=index can read single message, see https://www.developershome.com/sms/cmgrCommand.asp
       } else if (myParser.equalCommand_P(PSTR("RELAY"))) {
         // RELAY
@@ -504,17 +500,17 @@ void setup() {
   Serial.println(F("Ready. Use above commands or issue AT command to terminal"));
 }
 
-void updateSerial(uint32_t timeout = 1000) {
+void updateSerial() {
   // Forward what Serial received from your terminal,
   // parse commands and imnterpret them
   // and consider unparsed text as AT GSM commands (redirect them to gsmSerial).
   if (Serial.available()) {
-    Serial_handleInput(timeout);
+    Serial_handleInput();
   } else {
     delay(LOOP_DELAY);
   }
   // Handle output from GSM module (print it to terminal and look for rings)
-  AT_handleResponse(timeout);
+  AT_handleResponse();
 }
 
 void loop() {
