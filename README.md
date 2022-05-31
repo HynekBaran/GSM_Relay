@@ -27,19 +27,6 @@ Relay is connected to Arduino pin specified in sketch `#define PIN_RELAY 11` (an
 
 ![Schematics](schematics.jpg)
 
-## Compilation
-In the `SoftwareSerial` library header file, enlarge RX buffer size by
-
-`#define _SS_MAX_RX_BUFF 255 // SoftwareSerial RX buffer size`
-
-I my case, I found the file SoftwareSerial.h here:
-- Mac OS: ~/Library/Arduino15/packages/arduino/hardware/avr/1.8.5/libraries/SoftwareSerial/src/SoftwareSerial.h
-- Windows 10:  C:\Program Files\WindowsApps\ArduinoLLC.ArduinoIDE_1.8.57.0_x86__mdqgnx93n4wtt\hardware\arduino\avr\libraries\SoftwareSerial\SoftwareSerial.h
-
-The clean way is 
-1. copy Arduino core SoftwareSerial library into subdirectory "libraries" of your Arduino project folder (e.g. "~/Arduino/libraries" or "C:\Users\USERNAME\Documents\Arduino\libraries") and
-2. edit the user copy of SoftwareSerial.h at this location.
-
 
 ## Configuration
 At least two settings using terminal (via serial interface used for sketch uploading) must be done:
