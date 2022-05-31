@@ -238,7 +238,7 @@ void AT_handleResponse(uint32_t timeout = 5000) {
 }
 
 
-void AT_cmd (String cmd, uint32_t d = 4000, uint32_t timeout = 5000) {
+void AT_cmd (String cmd, uint32_t d = 10, uint32_t timeout = 5000) {
   Serial.println(">" + cmd);
   gsmSerial.print(cmd);
   gsmSerial.println(F("\r"));
