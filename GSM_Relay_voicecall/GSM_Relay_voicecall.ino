@@ -15,24 +15,32 @@
 // https://www.openluat.com/Product/file/asr1802/AT%20COMMAND%20Set%20for%20Luat%204G%20Modules_V3.89.pdf
 
 
-// In
+#include <CmdParser.hpp> // https://github.com/pvizeli/CmdParser
+#include <EEPROM.h>
+
+// hardware pins
+#define PIN_RELAY 11 // use "RELAY TESTPIN" to find out correct pin number
+#define LED LED_BUILTIN
+
+// In AltSoftSerial.cpp look for 
+// #define RX_BUFFER_SIZE 80
+// and enlarge RX buffer by 
+// #define RX_BUFFER_SIZE 255
+#include <AltSoftSerial.h> // https://github.com/PaulStoffregen/AltSoftSerial
+AltSoftSerial gsmSerial; // hardcoded pins (on ATMEGA328 devices, RX 8, TX 9), see https://www.pjrc.com/teensy/td_libs_AltSoftSerial.html  for details
+
+/*
+// Alternatively, instead of AltSoftSerial, the core SoftwareSerial library can be used. 
+// In such a case, enlarge RX buffer size in
 // ~/Library/Arduino15/packages/arduino/hardware/avr/1.8.5/libraries/SoftwareSerial/src/SoftwareSerial.h
-// enlarge RX buffer size by
+// by
 // #define _SS_MAX_RX_BUFF 255 // SoftwareSerial RX buffer size
 #include <SoftwareSerial.h>
 #if _SS_MAX_RX_BUFF < 100
 #error "_SS_MAX_RX_BUFF in <SoftwareSerial.h> is probably set too low."
 #endif
-
-
-#include <CmdParser.hpp> // https://github.com/pvizeli/CmdParser
-
-#include <EEPROM.h>
-
-// hardware pins
-SoftwareSerial gsmSerial (2, 3) ;
-#define PIN_RELAY 11 // use "RELAY TESTPIN" to find out correct pin number
-#define LED LED_BUILTIN
+SoftwareSerial gsmSerial (2, 3) ; // RX, TX
+*/
 
 // glabal vars
 #define LOOP_DELAY 500 // ms
@@ -448,13 +456,13 @@ void resetRelay() {
 
 void setup() {
   // Begin serial communication with Arduino and terminal (Serial Monitor in Arduino IDE on developer's computer)
-  Serial.begin(19200);
+  Serial.begin(115200);
   Serial.println(F(__FILE__));
   Serial.print(F("as at "));
   Serial.print(F(__DATE__));
   Serial.print(F(", "));
   Serial.println(F(__TIME__));
-  Serial.println(F("V 1.1.0. Initializing..."));
+  Serial.println(F("V 1.2.0. Initializing..."));
 
   // buildin LED
   pinMode(LED, OUTPUT);
