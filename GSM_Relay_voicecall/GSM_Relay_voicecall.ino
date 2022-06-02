@@ -22,6 +22,7 @@
 #define PIN_RELAY 11 // use "RELAY TESTPIN" to find out correct pin number
 #define LED LED_BUILTIN
 
+// Optional fix (in the case of troubles with SMS reading):
 // In AltSoftSerial.cpp look for 
 // #define RX_BUFFER_SIZE 80
 // and enlarge RX buffer by 

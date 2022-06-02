@@ -19,8 +19,8 @@ The parts used and tested are
 
 ## Wiring 
 Arduino compatible device uses two serial interfaces: 
-1. is used for configuration, sketch uploading and debugging (hardware serial available via USB on Arduino Nano), 19200 Bd unless changed (`Serial`)
-2. is attached to the GSM module (SoftwareSerial on Arduino Nano is used, 9600 Bd, `SoftwareSerial gsmSerial (2, 3)`)
+1. harware serial (standard RX, TX, available via USB on Arduino Nano) is used for configuration, sketch uploading and debugging , 115200 Bd unless changed (core `Serial`)
+2. software serial on pins 8 (RX), 9 (TX) are attached to the GSM module (library `AltSoftSerial` on Arduino Nano is used at 9600 Bd)
 
 Relay is connected to Arduino pin specified in sketch `#define PIN_RELAY 11` (and to 5V and GND).
 
@@ -29,7 +29,7 @@ Relay is connected to Arduino pin specified in sketch `#define PIN_RELAY 11` (an
 
 
 ## Configuration
-At least two settings using terminal (via serial interface used for sketch uploading) must be done:
+At least two settings using terminal (via hw serial interface used for sketch uploading) must be done:
 
 ### register authorised number(s) -  `REG` command
 
